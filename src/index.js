@@ -117,8 +117,8 @@ function commitWork(fiber) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
     commitDeletion(fiber.child, domParent);
-    domParent.removeChild(fiber.dom);
   }
+
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
@@ -148,7 +148,7 @@ function reconcileChildren(wipFiber, elements) {
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
   let prevSibling = null;
 
-  for (let index = 0; index < elements.length || oldFiber !== null; index++) {
+  for (let index = 0; index < elements.length || !!oldFiber; index++) {
     const element = elements[index];
     let newFiber = null;
 
@@ -188,7 +188,7 @@ function reconcileChildren(wipFiber, elements) {
 
     if (index === 0) {
       wipFiber.child = newFiber;
-    } else {
+    } else if (element) {
       prevSibling.sibling = newFiber;
     }
 
