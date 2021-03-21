@@ -90,18 +90,33 @@ function updateDom(dom, prevProps, nextProps) {
     });
 }
 
+function commitDeletion(fiber, domParent) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    // fiber.dom doesn't exists, if it's a function component.
+    commitDeletion(fiber.child, domParent);
+  }
+}
+
 function commitWork(fiber) {
   if (!fiber) {
     return;
   }
 
   // Since we start from `fiber.child`, `fiber.parent` is always accessable.
-  const domParent = fiber.parent.dom;
+  let domParentFiber = fiber.parent;
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent;
+  }
+  const domParent = domParentFiber.dom;
+
   if (fiber.effectTag === "PLACEMENT" && fiber.dom !== null) {
     domParent.appendChild(fiber.dom);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom !== null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
+    commitDeletion(fiber.child, domParent);
     domParent.removeChild(fiber.dom);
   }
   commitWork(fiber.child);
@@ -181,16 +196,30 @@ function reconcileChildren(wipFiber, elements) {
   }
 }
 
-/**
- * Attach DOM node to fiber and construct the fiber tree
- */
-function performUnitOfWork(fiber) {
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+function updateHostComponent(fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
 
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
+  reconcileChildren(fiber, fiber.props.children);
+}
+
+/**
+ * Attach DOM node to fiber and construct the fiber tree
+ */
+function performUnitOfWork(fiber) {
+  const isFunctionComponent = fiber.type instanceof Function;
+
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
+  }
 
   // return next unit of work
   if (fiber.child) {
