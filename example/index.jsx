@@ -1,19 +1,15 @@
 import { YoReact } from "../src";
 
-// const element = YoReact.createElement(
-//   "div",
-//   { id: "foo" },
-//   YoReact.createElement("a", null, "bar"),
-//   YoReact.createElement("b")
-// );
-
-// JSX style
 /** @jsx YoReact.createElement */
-const element = (
-  <div id="foo">
-    <a>bar</a>
-    <b />
-  </div>
-);
+function App() {
+  const [count, setCount] = YoReact.useState(0);
 
-YoReact.render(element, document.getElementById("root"));
+  return (
+    <div>
+      <div>Count: {count}</div>
+      <button onClick={() => setCount((c) => c + 1)}>+1</button>
+    </div>
+  );
+}
+
+YoReact.render(<App />, document.getElementById("root"));
