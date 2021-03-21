@@ -222,7 +222,7 @@ function updateHostComponent(fiber) {
 }
 
 /**
- * Attach DOM node to fiber and construct the fiber tree
+ * Construct the fiber tree and attach DOM node to fiber
  */
 function performUnitOfWork(fiber) {
   const isFunctionComponent = fiber.type instanceof Function;
@@ -233,7 +233,7 @@ function performUnitOfWork(fiber) {
     updateHostComponent(fiber);
   }
 
-  // return next unit of work
+  // Return next unit of work
   if (fiber.child) {
     return fiber.child;
   }
@@ -257,7 +257,7 @@ function workLoop(deadline) {
   }
 
   if (!nextUnitOfWork && wipRoot) {
-    // we have done all unit of work, so we can update the DOM tree
+    // We have done all unit of work, so we can update the DOM tree
     commitRoot();
   }
 
@@ -267,14 +267,14 @@ function workLoop(deadline) {
 requestIdleCallback(workLoop);
 
 /**
- * What useState do is create a hook object that containing
- * the state and action queue. If it's initial call, the
- * state will be `initial`, otherwise will be the last state.
+ * What useState do is creating a hook object holding
+ * the state and action queue. If it's initial called, the
+ * state will be `initial`, otherwise will be the previous state.
  * If there's any hook action in queue, call it with hook state
- * to do state transformation getting the newer state.
+ * to do state transform to get the newer state.
  *
- * The setState do the simple job that's pushing the state
- * transformation function to the hook queue and preparing the wipRoot
+ * The setState do the simple job pushing the state
+ * transform function to the hook queue and preparing the wipRoot
  * and nextUnitOfWork.
  */
 function useState(initial) {
@@ -290,7 +290,7 @@ function useState(initial) {
 
   const actions = oldHook ? oldHook.queue : [];
   actions.forEach((action) => {
-    // Do state transformation
+    // Do state transform
     hook.state = action(hook.state);
   });
 
