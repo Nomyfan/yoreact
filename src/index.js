@@ -196,7 +196,19 @@ function reconcileChildren(wipFiber, elements) {
   }
 }
 
+// --------- Hooks --------- //
+let wipFiber = null;
+let hookIndex = null;
+// ------------------------- //
+
 function updateFunctionComponent(fiber) {
+  // `fiber.type()` call triggers useState call,
+  // so we need to reset the following 3 state which
+  // is comsumed by useState now.
+  wipFiber = fiber;
+  hookIndex = 0;
+  wipFiber.hooks = [];
+
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
 }
@@ -254,7 +266,53 @@ function workLoop(deadline) {
 
 requestIdleCallback(workLoop);
 
+/**
+ * What useState do is create a hook object that containing
+ * the state and action queue. If it's initial call, the
+ * state will be `initial`, otherwise will be the last state.
+ * If there's any hook action in queue, call it with hook state
+ * to do state transformation getting the newer state.
+ *
+ * The setState do the simple job that's pushing the state
+ * transformation function to the hook queue and preparing the wipRoot
+ * and nextUnitOfWork.
+ */
+function useState(initial) {
+  const oldHook =
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIndex];
+
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  };
+
+  const actions = oldHook ? oldHook.queue : [];
+  actions.forEach((action) => {
+    // Do state transformation
+    hook.state = action(hook.state);
+  });
+
+  const setState = (action) => {
+    hook.queue.push(action);
+    // Similar to #render
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+  return [hook.state, setState];
+}
+
 export const YoReact = {
   createElement,
   render,
+  useState,
 };
