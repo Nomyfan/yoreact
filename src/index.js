@@ -50,15 +50,35 @@ function createDom(fiber) {
 
 // unit of work means fiber
 let nextUnitOfWork = null;
+// wip root fiber
+let wipRoot = null;
+
+function commitWork(fiber) {
+  if (!fiber) {
+    return;
+  }
+
+  // Since we start from `fiber.child`, `fiber.parent` is always accessable.
+  const domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+}
+
+function commitRoot() {
+  commitWork(wipRoot.child);
+  wipRoot = null;
+}
 
 function render(element, container) {
   // root fiber
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
     },
   };
+  nextUnitOfWork = wipRoot;
 }
 
 /**
@@ -117,6 +137,11 @@ function workLoop(deadline) {
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  if (!nextUnitOfWork && wipRoot) {
+    // we have done all unit of work, so we can update the DOM tree
+    commitRoot();
   }
 
   requestIdleCallback(workLoop);
